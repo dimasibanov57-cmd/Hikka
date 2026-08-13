@@ -1,0 +1,73 @@
+import json
+import hashlib
+import secrets
+from datetime import datetime
+import os
+from config import USERS_FILE
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def load_users():
+    try:
+        with open(USERS_FILE, "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+def save_users(users):
+    os.makedirs(os.path.dirname(USERS_FILE) or ".", exist_ok=True)
+    with open(USERS_FILE, "w") as f:
+        json.dump(users, f, indent=2)
+
+def register_user(telegram_id, username, password, api_id, api_hash, phone):
+    users = load_users()
+    user_id = str(telegram_id)
+    
+    if user_id in users:
+        return False, "❌ Пользователь уже зарегистрирован."
+    
+    users[user_id] = {
+        "username": username,
+        "password": hash_password(password),
+        "api_id": api_id,
+        "api_hash": api_hash,
+        "phone": phone,
+        "session": secrets.token_hex(16),
+        "created_at": datetime.now().isoformat(),
+        "last_login": None,
+        "active": True
+    }
+    save_users(users)
+    return True, "✅ Регистрация успешна!"
+
+def login_user(telegram_id, password):
+    users = load_users()
+    user_id = str(telegram_id)
+    
+    if user_id not in users:
+        return None, "❌ Пользователь не найден. Зарегистрируйтесь."
+    
+    user = users[user_id]
+    if user["password"] != hash_password(password):
+        return None, "❌ Неверный пароль."
+    
+    if not user["active"]:
+        return None, "⛔ Аккаунт заблокирован."
+    
+    user["last_login"] = datetime.now().isoformat()
+    save_users(users)
+    return user, "✅ Вход выполнен!"
+
+def get_user(telegram_id):
+    users = load_users()
+    return users.get(str(telegram_id))
+
+def update_user(telegram_id, data):
+    users = load_users()
+    user_id = str(telegram_id)
+    if user_id in users:
+        users[user_id].update(data)
+        save_users(users)
+        return True
+    return False
