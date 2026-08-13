@@ -1,0 +1,21 @@
+import os
+
+# Токен бота из секретов GitHub
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+# ID админов (через запятую)
+ADMIN_IDS = []
+admin_ids_str = os.getenv("ADMIN_IDS", "")
+if admin_ids_str:
+    ADMIN_IDS = [int(x.strip()) for x in admin_ids_str.split(",") if x.strip()]
+
+# Режим GitHub Actions
+IS_GITHUB = os.getenv("GITHUB_ACTIONS", "false").lower() == "true"
+
+# Файлы
+USERS_FILE = "users.json"
+SESSION_DIR = "sessions"
+
+# Проверка наличия токена
+if not BOT_TOKEN:
+    raise ValueError("❌ BOT_TOKEN не найден! Добавь его в секреты GitHub.")
