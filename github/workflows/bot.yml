@@ -1,0 +1,45 @@
+name: Telegram Bot Runner
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'      # Каждые 5 минут
+  workflow_dispatch:           # Ручной запуск через GitHub UI
+  push:
+    branches: [ main ]         # Автозапуск при пуше в main
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3         # Ограничение времени выполнения
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          pip install --no-cache-dir -r requirements.txt
+      
+      - name: Run Telegram Bot
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
+          GITHUB_ACTIONS: 'true'
+        run: python bot.py
+      
+      - name: Upload session files (if any)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: user-data
+          path: |
+            users.json
+            *.session
+            *.session-journal
+          retention-days: 1
